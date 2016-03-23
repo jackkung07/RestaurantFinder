@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <SearchView
+        android:id="@+id/searchview_restaurant"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorPrimary"
+        android:queryBackground="@color/colorWhite"
+        android:queryHint="@string/search_fragment_restaurant_name"
+
+        android:visibility="visible" />
+
+    <ImageButton
+        android:id="@+id/imagebutton_sort_mode_button"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/imagebutton_search_button"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:background="@color/colorPrimary"
+        android:clickable="true"
+        android:src="@drawable/ic_local_library_white_24dp" />
+
+
+    <!--google place picker api button-->
+    <Button
+        android:id="@+id/button_picker_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/searchview_restaurant"
+        android:layout_toLeftOf="@+id/imagebutton_search_button"
+        android:background="@color/colorPrimary"
+        android:clickable="true"
+        android:text="@string/search_fragment_place_picker_name"
+        android:textColor="@color/colorWhite" />
+
+    <!--search button-->
+    <ImageButton
+        android:id="@+id/imagebutton_search_button"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/result_list"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/searchview_restaurant"
+        android:background="@color/colorPrimary"
+        android:clickable="true"
+        android:src="@drawable/ic_search_white_24dp" />
+
+    <!--search result in list view-->
+    <ListView
+        android:id="@+id/result_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/button_picker_button">
+
+    </ListView>
+</RelativeLayout>

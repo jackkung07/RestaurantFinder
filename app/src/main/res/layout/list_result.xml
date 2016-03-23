@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="5dp"
+    tools:ignore="WebViewLayout">
+
+
+
+    <WebView
+        android:id="@+id/list_result_business_icon"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_alignParentLeft="true"
+        android:focusable = "false"
+        android:focusableInTouchMode = "false"
+        >
+
+    </WebView>
+
+    <TextView
+        android:id="@+id/list_result_business_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="San Jose State University"
+        android:layout_toRightOf="@+id/list_result_business_icon"
+        android:focusable = "false"
+        android:focusableInTouchMode = "false"
+        />
+    <TextView
+        android:id="@+id/list_result_business_rating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rating: 5"
+        android:layout_alignParentRight="true"
+        android:focusable = "false"
+        android:focusableInTouchMode = "false"
+        />
+
+    <TextView
+        android:id="@+id/list_result_business_address"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/list_result_business_rating"
+        android:layout_toRightOf="@+id/list_result_business_icon"
+        android:text="1 Washington Sq\n San Jose, CA 95192"
+        android:focusable = "false"
+        android:focusableInTouchMode = "false"
+        />
+</RelativeLayout>
