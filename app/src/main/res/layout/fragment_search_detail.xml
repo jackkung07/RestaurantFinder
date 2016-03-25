@@ -74,10 +74,14 @@
         android:layout_centerVertical="true"
         android:layout_alignParentStart="false"
         android:layout_below="@+id/detail_business_phone_number">
-
-        <include
-            android:id="@+id/detail_map_fragment"
-            layout="@layout/fragment_search_detail_map" />
+        <fragment
+        android:name="com.google.android.gms.maps.MapFragment"
+        android:id="@+id/detail_map_fragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+        <!--<include-->
+            <!--android:id="@+id/detail_map_fragment"-->
+            <!--layout="@layout/fragment_search_detail_map" />-->
 
 
     </FrameLayout>

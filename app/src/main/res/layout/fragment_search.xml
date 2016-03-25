@@ -11,12 +11,23 @@
         android:background="@color/colorPrimary"
         android:queryBackground="@color/colorWhite"
         android:queryHint="@string/search_fragment_restaurant_name"
-
         android:visibility="visible" />
+
+    <!--<EditText-->
+        <!--android:id="@+id/searchview_restaurant"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="50dp"-->
+        <!--android:background="@color/colorPrimary"-->
+        <!--android:queryBackground="@color/colorWhite"-->
+        <!--android:hint="@string/search_fragment_restaurant_name"-->
+        <!--android:layout_alignParentTop="true"-->
+        <!--android:layout_alignParentLeft="true"-->
+        <!--android:visibility="visible"-->
+        <!--/>-->
 
     <ImageButton
         android:id="@+id/imagebutton_sort_mode_button"
-        android:layout_width="50dp"
+        android:layout_width="70dp"
         android:layout_height="wrap_content"
         android:layout_above="@+id/imagebutton_search_button"
         android:layout_alignParentEnd="true"
@@ -41,7 +52,7 @@
     <!--search button-->
     <ImageButton
         android:id="@+id/imagebutton_search_button"
-        android:layout_width="50dp"
+        android:layout_width="70dp"
         android:layout_height="wrap_content"
         android:layout_above="@+id/result_list"
         android:layout_alignParentRight="true"

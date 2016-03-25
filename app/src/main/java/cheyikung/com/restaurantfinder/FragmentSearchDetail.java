@@ -1,10 +1,11 @@
 package cheyikung.com.restaurantfinder;
 
+import android.app.Activity;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.view.InflateException;
 import android.view.LayoutInflater;
@@ -29,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMapOptions;
+import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
@@ -63,12 +65,12 @@ public class FragmentSearchDetail extends Fragment {
     private TextView businessPhoneNumber;
     private TextView businessAddress;
 
-    private FragmentActivity mActivity;
+    private Activity mActivity;
     private Menu menu;
 
     private Business business;
 
-    private SupportMapFragment fragment;
+    private MapFragment fragment;
 
     private Manager manager;
     private Database database;
@@ -85,6 +87,18 @@ public class FragmentSearchDetail extends Fragment {
     }
 
     @Override
+    public void onSaveInstanceState(Bundle outState) {
+
+        outState.putBoolean("isInDatabase", isInDatabase);
+//        outState.putParcelable("businesses", businesses);
+        outState.putSerializable("businesses", business);
+
+        super.onSaveInstanceState(outState);
+
+
+    }
+
+    @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mActivity = getActivity();
@@ -96,10 +110,15 @@ public class FragmentSearchDetail extends Fragment {
         businessAddress = (TextView) mActivity.findViewById(R.id.detail_business_address);
         business = (Business) getArguments().getSerializable("business");
         isInDatabase = false;
+        if(savedInstanceState!=null){
+            isInDatabase = savedInstanceState.getBoolean("isInDatabase");
+        }
 
         String imageUrl = business.imageUrl();
         if (imageUrl != null) {
             businessIcon.loadUrl(imageUrl);
+            businessIcon.zoomBy(0.05f);
+
         }
         if (business.name() != null) {
             businessName.setText(business.name().toString());
@@ -144,7 +163,7 @@ public class FragmentSearchDetail extends Fragment {
             businessAddress.setText("");
         }
 
-        FragmentManager fm = getChildFragmentManager();
+
         GoogleMapOptions options = new GoogleMapOptions();
         LatLng latLng = new LatLng(business.location().coordinate().latitude(), business.location().coordinate().longitude());
 
@@ -159,7 +178,7 @@ public class FragmentSearchDetail extends Fragment {
                 .rotateGesturesEnabled(false)
                 .tiltGesturesEnabled(false).camera(cameraPosition).liteMode(true);
         if (fragment == null) {
-            fragment = SupportMapFragment.newInstance(options);
+            fragment = MapFragment.newInstance(options);
             fragment.getMapAsync(new OnMapReadyCallback() {
                 @Override
                 public void onMapReady(GoogleMap googleMap) {
@@ -183,7 +202,8 @@ public class FragmentSearchDetail extends Fragment {
 
                 }
             });
-            fm.beginTransaction().replace(R.id.detail_map_fragment, fragment).addToBackStack("detail_map").commit();
+
+            getChildFragmentManager().beginTransaction().add(R.id.detail_map_fragment,fragment).commit();
         }
 
         try {
@@ -231,7 +251,6 @@ public class FragmentSearchDetail extends Fragment {
             try {
                 if(json.getString("id").toString().equals(business.id().toString())){
                     isInDatabase = true;
-
                     break;
                 }
             } catch (JSONException e) {
@@ -260,12 +279,18 @@ public class FragmentSearchDetail extends Fragment {
         }
         try {
             view = inflater.inflate(R.layout.fragment_search_detail, null);
-
         } catch (InflateException e) {
 
         }
+//        ViewGroup view = (ViewGroup) inflater.inflate(R.layout.fragment_favorite, null);
         setHasOptionsMenu(true);
         return view;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // Pass any configuration change to the drawer toggles
     }
 
     @Override
@@ -315,7 +340,8 @@ public class FragmentSearchDetail extends Fragment {
                 Toast.makeText(mActivity, "favorite icon", Toast.LENGTH_SHORT).show();
                 return true;
             case android.R.id.home:
-                getChildFragmentManager().popBackStackImmediate();
+//                getChildFragmentManager().popBackStackImmediate();
+                getFragmentManager().popBackStackImmediate();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
