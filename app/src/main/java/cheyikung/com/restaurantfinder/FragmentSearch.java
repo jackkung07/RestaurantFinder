@@ -7,7 +7,6 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
@@ -33,6 +32,7 @@ import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
@@ -48,12 +48,16 @@ import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.gson.Gson;
 import com.google.maps.android.SphericalUtil;
 import com.yelp.clientlib.connection.YelpAPI;
 import com.yelp.clientlib.connection.YelpAPIFactory;
 import com.yelp.clientlib.entities.Business;
 import com.yelp.clientlib.entities.SearchResponse;
 import com.yelp.clientlib.entities.options.CoordinateOptions;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -68,32 +72,6 @@ import static android.view.View.*;
  * Created by cheyikung on 3/18/16.
  */
 public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnConnectionFailedListener {
-
-    @Override
-    public void onActivityCreated (Bundle savedInstanceState){
-
-        super.onActivityCreated(savedInstanceState);
-        if(savedInstanceState!=null) {
-            searchMode = savedInstanceState.getInt("searchMode");
-            pickedLocation = savedInstanceState.getParcelable("pickedLocation");
-            searchRestaurantQuery = savedInstanceState.getString("searchRestaurantQuery");
-            hasSearched = savedInstanceState.getBoolean("hasSearched");
-            if(hasSearched) {
-                searchButton.performClick();
-            }
-        }
-
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        outState.putString("pickerButtonText", pickerButton.getText().toString());
-        outState.putInt("searchMode", searchMode);
-        outState.putParcelable("pickedLocation", pickedLocation);
-        outState.putString("searchRestaurantQuery", searchRestaurantQuery);
-        outState.putBoolean("hasSearched", hasSearched);
-        super.onSaveInstanceState(outState);
-    }
 
     //test
     private String nameByGoogle;
@@ -111,7 +89,6 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
     private static final int PLACE_PICKER_REQUEST = 1;
 
     private SearchView searchRestaurant;
-//    private EditText searchRestaurant;
     private ImageButton sortButton;
 
     private Button pickerButton;
@@ -148,7 +125,7 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
         super.onViewCreated(view, savedInstanceState);
         setRetainInstance(true);
         mActivity = getActivity();
-        if(savedInstanceState==null) {
+        if (savedInstanceState == null) {
             searchMode = 0;
             hasSearched = false;
         }
@@ -160,14 +137,17 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
 
         // searchRestaurant searchView field
         searchRestaurant = (SearchView) mActivity.findViewById(R.id.searchview_restaurant);
-//        searchRestaurant.clearFocus();
         searchRestaurant.onActionViewExpanded();
-//        searchRestaurant.onActionViewExpanded();
-
-//        searchRestaurant = (EditText) mActivity.findViewById(R.id.searchview_restaurant);
+        searchRestaurant.setOnLongClickListener(new OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Context context = mActivity.getApplicationContext();
+                Toast.makeText(context, "Type in anything", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        });
 
         if (savedInstanceState != null) {
-//            searchRestaurant.setHint(searchRestaurantQuery);
             searchRestaurant.setQuery(searchRestaurantQuery, false);
         }
 
@@ -185,28 +165,26 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
                 if (searchMode == 0) {
                     searchMode = 1;
                     sortButton.setImageResource(R.drawable.ic_directions_run_white_24dp);
-//                    Toast.makeText(context, "Search by distance", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Search by distance", Toast.LENGTH_SHORT).show();
 
                 } else {
                     searchMode = 0;
                     sortButton.setImageResource(R.drawable.ic_local_library_white_24dp);
-//                    Toast.makeText(context, "Search by relevance", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Search by relevance", Toast.LENGTH_SHORT).show();
                 }
                 if (businesses != null && businesses.size() > 0) {
                     searchButton.performClick();
                 }
-//                InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(mActivity.INPUT_METHOD_SERVICE);
-//                imm.hideSoftInputFromWindow(listView.getWindowToken(), 0);
             }
         });
-        sortButton.setOnLongClickListener(new OnLongClickListener(){
+        sortButton.setOnLongClickListener(new OnLongClickListener() {
 
             @Override
             public boolean onLongClick(View v) {
                 Context context = mActivity.getApplicationContext();
                 if (searchMode == 0) {
                     Toast.makeText(context, "Sort by relevance\nPress to toggle between sort by relevance or by sort by distance", Toast.LENGTH_LONG).show();
-                }else{
+                } else {
                     Toast.makeText(context, "Sort by distance\nPress to toggle between sort by relevance or by sort by distance", Toast.LENGTH_LONG).show();
                 }
                 return false;
@@ -221,9 +199,19 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
         //get current location
         pickerButton = (Button) mActivity.findViewById(R.id.button_picker_button);
 
-        if(savedInstanceState == null) {
+        pickerButton.setOnLongClickListener(new OnLongClickListener() {
+            Context context = mActivity.getApplicationContext();
+
+            @Override
+            public boolean onLongClick(View v) {
+                Toast.makeText(context, "Click here to select location", Toast.LENGTH_LONG).show();
+                return false;
+            }
+        });
+
+        if (savedInstanceState == null) {
             currentLocation();
-            if(pickedLocation == null){
+            if (pickedLocation == null) {
                 pickedLocation = new LatLng(37.398160, -122.180831);
                 pickerButton.setText("Can't get current location.\nPlease click here to select location");
             }
@@ -231,7 +219,6 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
 
         if (savedInstanceState != null) {
             pickerButton.setText(savedInstanceState.getString("pickerButtonText"));
-
         }
 
         //dynamically set place picker button text
@@ -240,6 +227,9 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
         pickerButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                mActivity.getFragmentManager().beginTransaction().detach(mActivity.getFragmentManager().findFragmentByTag("fragment_search")).commit();
+                Context context = mActivity.getApplicationContext();
+                Toast.makeText(context, "Please wait", Toast.LENGTH_LONG).show();
                 try {
                     PlacePicker.IntentBuilder intentBuilder =
                             new PlacePicker.IntentBuilder();
@@ -251,9 +241,10 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
                         | GooglePlayServicesNotAvailableException e) {
                     e.printStackTrace();
                 }
+                mActivity.getFragmentManager().beginTransaction().attach(mActivity.getFragmentManager().findFragmentByTag("fragment_search")).commit();
+
             }
         });
-
 
         //search button
         searchButton = (ImageButton) mActivity.findViewById(R.id.imagebutton_search_button);
@@ -262,8 +253,6 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
             public void onClick(View v) {
                 Context context = mActivity.getApplicationContext();
                 searchRestaurantQuery = searchRestaurant.getQuery().toString();
-//                searchRestaurantQuery = searchRestaurant.getText().toString();
-                Toast.makeText(context, "search button clicked.\nname: " + searchRestaurantQuery + "\nsearch mode: " + Integer.toString(searchMode) + "\nLatLng: " + pickedLocation.toString(), Toast.LENGTH_SHORT).show();
                 hasSearched = true;
                 DownloadYelpDataTask task = new DownloadYelpDataTask();
                 task.execute(new String[]{searchRestaurantQuery, Integer.toString(searchMode), Double.toString(pickedLocation.latitude), Double.toString(pickedLocation.longitude)});
@@ -293,13 +282,33 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
             }
 
         });
-//        InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(mActivity.INPUT_METHOD_SERVICE);
-//        imm.hideSoftInputFromWindow(listView.getWindowToken(), 0);
-
-//        InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(mActivity.INPUT_METHOD_SERVICE);
-//        imm.hideSoftInputFromWindow(mActivity.getCurrentFocus().getWindowToken(), 0);
     }
 
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+
+        super.onActivityCreated(savedInstanceState);
+        if (savedInstanceState != null) {
+            searchMode = savedInstanceState.getInt("searchMode");
+            pickedLocation = savedInstanceState.getParcelable("pickedLocation");
+            searchRestaurantQuery = savedInstanceState.getString("searchRestaurantQuery");
+            hasSearched = savedInstanceState.getBoolean("hasSearched");
+            if (hasSearched) {
+                searchButton.performClick();
+            }
+        }
+
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putString("pickerButtonText", pickerButton.getText().toString());
+        outState.putInt("searchMode", searchMode);
+        outState.putParcelable("pickedLocation", pickedLocation);
+        outState.putString("searchRestaurantQuery", searchRestaurantQuery);
+        outState.putBoolean("hasSearched", hasSearched);
+        super.onSaveInstanceState(outState);
+    }
 
 
     @Override
@@ -468,41 +477,37 @@ public class FragmentSearch extends Fragment implements ConnectionCallbacks, OnC
                     InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(mActivity.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(searchRestaurant.getWindowToken(), 0);
 
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    String businessJson;
+
+                    Gson gson = new Gson();
+                    businessJson = gson.toJson(selectedBusiness);
+                    JSONObject jsonObjectobj = null;
+                    try {
+                        jsonObjectobj = new JSONObject(businessJson);
+                        jsonObjectobj.put("phone", selectedBusiness.phone());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+
+                    String businessJsonStr = jsonObjectobj.toString();
+
                     Bundle args = new Bundle();
-                    args.putSerializable("business", selectedBusiness);
+
+//                    args.putSerializable("business", jsonObjectobj);
+                    args.putString("businessJsonStr", businessJsonStr);
                     if (selectedBusiness != null) {
                         Log.d("bussiness not null", "not null");
                     }
 
                     fragmentSearchDetail.setArguments(args);
-
                     fragmentTransaction.hide(getFragmentManager().findFragmentByTag("fragment_search")).add(R.id.fragment_container, fragmentSearchDetail, null).addToBackStack(null).commit();
                 }
             });
-
-//            listView.setOnScrollListener(new AbsListView.OnScrollListener() {
-//                public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-//                }
-//
-//                public void onScrollStateChanged(AbsListView view, int scrollState) {
-//                    if (scrollState != 0) {
-//                        if (view != null) {
-//                            InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(mActivity.INPUT_METHOD_SERVICE);
-//                            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-//                        }
-//                    }
-//                }
-//            });
         }
-
     }
-
-
-//    @Override
-//    public void onConfigurationChanged(Configuration newConfig) {
-//        super.onConfigurationChanged(newConfig);
-//        // Pass any configuration change to the drawer toggles
-//    }
 
     public LatLngBounds toBounds(LatLng center, double radius) {
         LatLng southwest = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 225);

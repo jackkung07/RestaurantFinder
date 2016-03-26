@@ -32,32 +32,27 @@ public class MainActivity extends AppCompatActivity {
     private Fragment fragmentFavorite;
 
     private Bundle saveState;
-
-//    private Fragment currentFragment;
-
+    private boolean firstStart;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        saveState = savedInstanceState;
         setContentView(R.layout.activity_main);
-
-
         if (savedInstanceState == null) {
+            firstStart = true;
             rotationTrigger = false;
-            fragmentClass = FragmentFavorite.class;
-            try {
-                fragmentFavorite = (Fragment) fragmentClass.newInstance();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            }
-//            fragmentFavorite = new FragmentFavorite();
-            fragmentFavorite.setArguments(getIntent().getExtras());
-            fragmentFavorite.setRetainInstance(true);
-//            getFragmentManager().beginTransaction().add(R.id.fragment_container, fragmentFavorite, "fav").commit();
-            getFragmentManager().beginTransaction().add(R.id.fragment_container, fragmentFavorite, "fragment_favorite").commit();
-
+//            fragmentClass = FragmentFavorite.class;
+//            try {
+//                fragmentFavorite = (Fragment) fragmentClass.newInstance();
+//            } catch (IllegalAccessException e) {
+//                e.printStackTrace();
+//            } catch (InstantiationException e) {
+//                e.printStackTrace();
+//            }
+//            fragmentFavorite.setArguments(getIntent().getExtras());
+//            fragmentFavorite.setRetainInstance(true);
+//            getFragmentManager().beginTransaction().add(R.id.fragment_container, fragmentFavorite, "fragment_favorite").commit();
             fragmentClass = FragmentSearch.class;
             try {
                 fragmentSearch = (Fragment) fragmentClass.newInstance();
@@ -68,23 +63,15 @@ public class MainActivity extends AppCompatActivity {
             }
             fragmentSearch.setArguments(getIntent().getExtras());
             fragmentSearch.setRetainInstance(true);
-
-            getFragmentManager().beginTransaction().hide(fragmentFavorite).add(R.id.fragment_container, fragmentSearch, "fragment_search").commit();
-//            getFragmentManager()().beginTransaction().add(R.id.fragment_container, fragmentSearch, "fragment_search").commit();
-//            getFragmentManager()().beginTransaction().replace(R.id.fragment_container, fragmentSearch, "fragment_search").commit();
-//            int i = getFragmentManager()().getFragments().size();
-
-//            Log.d("onstart fragment size", Integer.toString(i));
+            getFragmentManager().beginTransaction().add(R.id.fragment_container, fragmentSearch, "fragment_search").commit();
         } else {
             saveState = savedInstanceState;
             rotationTrigger = savedInstanceState.getBoolean("rotationTrigger");
-
-            fragmentSearch = (FragmentSearch) getFragmentManager().findFragmentByTag("fragment_search");
-            fragmentFavorite = (FragmentFavorite) getFragmentManager().findFragmentByTag("fragment_favorite");
+            fragmentSearch = getFragmentManager().findFragmentByTag("fragment_search");
+            fragmentFavorite = getFragmentManager().findFragmentByTag("fragment_favorite");
             Log.d("restore", "restore");
 
         }
-
 
         // Set a Toolbar to replace the ActionBar.
         toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -110,28 +97,26 @@ public class MainActivity extends AppCompatActivity {
         };
 
         final View.OnClickListener originalToolbarListener = drawerToggle.getToolbarNavigationClickListener();
-//        Log.d("backstack entry count",Integer.toString(getFragmentManager().getBackStackEntryCount()));
-
-            getFragmentManager().addOnBackStackChangedListener(new FragmentManager.OnBackStackChangedListener() {
-                @Override
-                public void onBackStackChanged() {
-                    if (getFragmentManager().getBackStackEntryCount() > 0) {
-                        drawerToggle.setDrawerIndicatorEnabled(false);
-                        mDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-                        drawerToggle.setToolbarNavigationClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                getFragmentManager().popBackStack();
-                            }
-                        });
-                    } else {
-                        drawerToggle.setDrawerIndicatorEnabled(true);
-                        drawerToggle.setToolbarNavigationClickListener(originalToolbarListener);
-                        mDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-                    }
+        getFragmentManager().addOnBackStackChangedListener(new FragmentManager.OnBackStackChangedListener() {
+            @Override
+            public void onBackStackChanged() {
+                if (getFragmentManager().getBackStackEntryCount() > 0) {
+                    drawerToggle.setDrawerIndicatorEnabled(false);
+                    mDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+                    drawerToggle.setToolbarNavigationClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            getFragmentManager().popBackStack();
+                        }
+                    });
+                } else {
+                    drawerToggle.setDrawerIndicatorEnabled(true);
+                    drawerToggle.setToolbarNavigationClickListener(originalToolbarListener);
+                    mDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
                 }
-            });
-        if(savedInstanceState != null && getFragmentManager().getBackStackEntryCount() > 0) {
+            }
+        });
+        if (savedInstanceState != null && getFragmentManager().getBackStackEntryCount() > 0) {
             drawerToggle.setDrawerIndicatorEnabled(false);
             mDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
             drawerToggle.setToolbarNavigationClickListener(new View.OnClickListener() {
@@ -141,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-
 
 
         mDrawer.setDrawerListener(drawerToggle);
@@ -159,12 +143,14 @@ public class MainActivity extends AppCompatActivity {
         // Always call the superclass so it can save the view hierarchy state
         rotationTrigger = true;
         outState.putBoolean("rotationTrigger", rotationTrigger);
+        outState.putBoolean("firstStart", firstStart);
         super.onSaveInstanceState(outState);
     }
 
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
+        firstStart = savedInstanceState.getBoolean("firstStart");
     }
 
     private FragmentManager.OnBackStackChangedListener
@@ -182,38 +168,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-//    @Override
-//    protected void onPause()
-//    {
-//        super.onPause();
-//        Log.d("tag:", "onPause is called");
-//        // insert here your instructions
-//    }
-
     @Override
-    protected void onResume()
-    {
+    protected void onResume() {
         super.onResume();
+        // insert here your instructions
         Log.d("tag:", "onResume is called");
         drawerToggle.syncState();
-        // insert here your instructions
     }
-
-//    @Override
-//    protected void onStop()
-//    {
-//        super.onStop();
-//        Log.d("tag:", "onStop is called");
-//        // insert here your instructions
-//    }
-//
-//    @Override
-//    protected void onStart() {
-//        super.onStart();
-//        Log.d("tag:", "onStart is called");
-//        // insert here your instructions
-//    }
-
 
     @Override
     public void onBackPressed() {
@@ -269,14 +230,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void selectDrawerItem(MenuItem menuItem) {
-//        Context context = getApplicationContext();
-
-//        CharSequence text = "Search!";
-//        CharSequence text2 = "favorite!";
-
         if (rotationTrigger && saveState != null) {
-//            Toast toast = Toast.makeText(context, "restore context", Toast.LENGTH_SHORT);
-//            toast.show();
             menuItem.setChecked(true);
             setTitle(menuItem.getTitle());
             mDrawer.closeDrawers();
@@ -285,12 +239,34 @@ public class MainActivity extends AppCompatActivity {
         }
         switch (menuItem.getItemId()) {
             case R.id.nav_search:
-                fragmentClass = FragmentSearch.class;
-                getFragmentManager().beginTransaction().hide(fragmentFavorite).show(fragmentSearch).commit();
+                if (firstStart) {
+                    firstStart = false;
+                } else {
+                    Fragment fragmentTemp = getFragmentManager().findFragmentByTag("fragment_favorite");
+                    if(fragmentTemp==null){
+                        break;
+                    }
+                    getFragmentManager().beginTransaction().hide(getFragmentManager().findFragmentByTag("fragment_favorite")).show(getFragmentManager().findFragmentByTag("fragment_search")).commit();
+                    getFragmentManager().beginTransaction().remove(getFragmentManager().findFragmentByTag("fragment_favorite")).commit();
+
+                }
                 break;
             case R.id.nav_favorite:
                 fragmentClass = FragmentFavorite.class;
-                getFragmentManager().beginTransaction().hide(fragmentSearch).show(fragmentFavorite).commit();
+                fragmentFavorite = getFragmentManager().findFragmentByTag("fragment_favorite");
+                if (fragmentFavorite != null)
+                    break;
+                try {
+                    fragmentFavorite = (Fragment) fragmentClass.newInstance();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                }
+                fragmentFavorite.setArguments(getIntent().getExtras());
+                fragmentFavorite.setRetainInstance(true);
+
+                getFragmentManager().beginTransaction().hide(getFragmentManager().findFragmentByTag("fragment_search")).add(R.id.fragment_container, fragmentFavorite, "fragment_favorite").commit();
                 break;
             default:
                 break;
@@ -298,7 +274,5 @@ public class MainActivity extends AppCompatActivity {
         menuItem.setChecked(true);
         setTitle(menuItem.getTitle());
         mDrawer.closeDrawers();
-
-
     }
 }

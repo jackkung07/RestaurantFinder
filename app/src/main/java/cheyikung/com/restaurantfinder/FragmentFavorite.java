@@ -2,6 +2,8 @@ package cheyikung.com.restaurantfinder;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -14,6 +16,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -27,6 +31,7 @@ import com.couchbase.lite.QueryRow;
 import com.couchbase.lite.android.AndroidContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.yelp.clientlib.entities.Business;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -51,6 +56,8 @@ public class FragmentFavorite extends Fragment {
     private ArrayList<JSONObject> jsonObjectList;
 
     private Menu menu;
+    private Class fragmentClass;
+    private Fragment fragmentSearchDetail;
 
 
     public static FragmentFavorite newInstance(Context context){
@@ -69,10 +76,97 @@ public class FragmentFavorite extends Fragment {
         listView.setItemsCanFocus(false);
         listView.setClickable(false);
 
-        GetDataFromDatabase task = new GetDataFromDatabase();
-        task.execute(new String());
+//        GetDataFromDatabase task = new GetDataFromDatabase();
+//        task.execute(new String());
+        try {
+            manager = new Manager(new AndroidContext(mActivity), Manager.DEFAULT_OPTIONS);
+            Log.d(DATABASE_NAME, "Manager created");
+        } catch (IOException e) {
+            Log.e(DATABASE_NAME, "Cannot create manager object");
+
+        }
+
+        if (!Manager.isValidDatabaseName(DATABASE_NAME)) {
+            Log.e(DATABASE_NAME, "Bad database name");
+        }
+
+
+        try {
+            if(manager.getExistingDatabase(DATABASE_NAME)!=null){
+                database = manager.getExistingDatabase(DATABASE_NAME);
+                Log.d (DATABASE_NAME, "Database exists");
+            }else {
+                database = manager.getDatabase(DATABASE_NAME);
+                Log.d(DATABASE_NAME, "Database created");
+            }
+
+        } catch (CouchbaseLiteException e) {
+            Log.e(DATABASE_NAME, "Cannot get database");
+
+        }
+
+
+        // check if data exists in database
+        Query query = database.createAllDocumentsQuery();
+        query.setAllDocsMode(Query.AllDocsMode.ALL_DOCS);
+        QueryEnumerator result = null;
+        try {
+            result = query.run();
+        } catch (CouchbaseLiteException e) {
+            e.printStackTrace();
+        }
+        jsonObjectList = new ArrayList<JSONObject>();
+        for (Iterator<QueryRow> it = result; it.hasNext(); ) {
+            QueryRow row = it.next();
+            Document doc = row.getDocument();
+            JSONObject json = new JSONObject(doc.getProperties());
+            jsonObjectList.add(json);
+        }
+        Log.d("database size", Integer.toString(jsonObjectList.size()));
+        listView.setAdapter(new FavoriteResultArrayAdapter(mActivity, jsonObjectList));
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+                JSONObject jsonObject = (JSONObject) listView.getItemAtPosition(position);
+
+                String businessName = null;
+                try {
+                    businessName = jsonObject.getString("name");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Toast toast = Toast.makeText(mActivity, businessName, Toast.LENGTH_SHORT);
+                toast.show();
+
+
+                fragmentClass = FragmentSearchDetail.class;
+                try {
+                    fragmentSearchDetail = (Fragment) fragmentClass.newInstance();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                FragmentManager fragmentManager = mActivity.getFragmentManager();
+                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+//                    InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(mActivity.INPUT_METHOD_SERVICE);
+//                    imm.hideSoftInputFromWindow(searchRestaurant.getWindowToken(), 0);
+
+                Bundle args = new Bundle();
+//                    // change to jsonelement
+                args.putString("businessJsonStr", jsonObject.toString());
+                // change to jsonelement
+                if (jsonObject != null) {
+                    Log.d("bussiness not null", "not null");
+                }
+
+                fragmentSearchDetail.setArguments(args);
+                fragmentTransaction.hide(getFragmentManager().findFragmentByTag("fragment_favorite")).add(R.id.fragment_container, fragmentSearchDetail, null).addToBackStack(null).commit();
+            }
+        });
 
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,Bundle savedInstanceState) {
@@ -153,6 +247,46 @@ public class FragmentFavorite extends Fragment {
         @Override
         protected void onPostExecute(String result) {
             listView.setAdapter(new FavoriteResultArrayAdapter(mActivity, jsonObjectList));
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+                    JSONObject jsonObject = (JSONObject) listView.getItemAtPosition(position);
+
+                    String businessName = null;
+                    try {
+                        businessName = jsonObject.getString("name");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    Toast toast = Toast.makeText(mActivity, businessName, Toast.LENGTH_SHORT);
+                    toast.show();
+
+
+                    fragmentClass = FragmentSearchDetail.class;
+                    try {
+                        fragmentSearchDetail = (Fragment) fragmentClass.newInstance();
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    FragmentManager fragmentManager = mActivity.getFragmentManager();
+                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+//                    InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(mActivity.INPUT_METHOD_SERVICE);
+//                    imm.hideSoftInputFromWindow(searchRestaurant.getWindowToken(), 0);
+
+                    Bundle args = new Bundle();
+//                    // change to jsonelement
+                    args.putString("businessJsonStr", jsonObject.toString());
+                    // change to jsonelement
+                    if (jsonObject != null) {
+                        Log.d("bussiness not null", "not null");
+                    }
+
+                    fragmentSearchDetail.setArguments(args);
+                    fragmentTransaction.hide(getFragmentManager().findFragmentByTag("fragment_favorite")).add(R.id.fragment_container, fragmentSearchDetail, null).addToBackStack(null).commit();
+                }
+            });
         }
     }
 }

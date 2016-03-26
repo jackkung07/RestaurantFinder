@@ -15,6 +15,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
+import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,6 +45,7 @@ import com.google.gson.JsonParser;
 import com.yelp.clientlib.entities.Business;
 import com.yelp.clientlib.entities.Location;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -68,7 +70,9 @@ public class FragmentSearchDetail extends Fragment {
     private Activity mActivity;
     private Menu menu;
 
-    private Business business;
+//    private Business business;
+    private JSONObject business;
+    private String businessJsonStr;
 
     private MapFragment fragment;
 
@@ -88,14 +92,10 @@ public class FragmentSearchDetail extends Fragment {
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-
         outState.putBoolean("isInDatabase", isInDatabase);
-//        outState.putParcelable("businesses", businesses);
-        outState.putSerializable("businesses", business);
-
+        outState.putString("businessJsonStr", businessJsonStr);
+//        outState.putSerializable("businesses", business);
         super.onSaveInstanceState(outState);
-
-
     }
 
     @Override
@@ -108,64 +108,152 @@ public class FragmentSearchDetail extends Fragment {
         businessReview = (TextView) mActivity.findViewById(R.id.detail_business_reviews);
         businessPhoneNumber = (TextView) mActivity.findViewById(R.id.detail_business_phone_number);
         businessAddress = (TextView) mActivity.findViewById(R.id.detail_business_address);
-        business = (Business) getArguments().getSerializable("business");
+//        business = (Business) getArguments().getSerializable("business");
+        businessJsonStr = getArguments().getString("businessJsonStr");
+
+        try {
+            business = new JSONObject(businessJsonStr);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         isInDatabase = false;
         if(savedInstanceState!=null){
             isInDatabase = savedInstanceState.getBoolean("isInDatabase");
         }
 
-        String imageUrl = business.imageUrl();
+        String imageUrl = null;
+        try {
+            imageUrl = business.getString("imageUrl");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         if (imageUrl != null) {
             businessIcon.loadUrl(imageUrl);
             businessIcon.zoomBy(0.05f);
-
         }
-        if (business.name() != null) {
-            businessName.setText(business.name().toString());
+
+        String name = null;
+        try {
+            name = business.getString("name");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        if (name != null) {
+            businessName.setText(name);
         } else {
             businessName.setText("");
         }
 
-        if (business.rating() != null) {
-            businessRating.setText("Rating: " + Double.toString(business.rating()));
+        Double rating = null;
+        try {
+            rating = business.getDouble("rating");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        if (rating != null) {
+            businessRating.setText("Rating: " + Double.toString(rating));
         } else {
             businessRating.setText("");
         }
 
-        if (business.reviewCount() != null) {
-            businessReview.setText(business.reviewCount().toString() + " Reviews");
+        int reviewCount = 0;
+        try {
+            reviewCount = business.getInt("reviewCount");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        if (reviewCount != 0) {
+            businessReview.setText(Integer.toString(reviewCount) + " Reviews");
         } else {
             businessReview.setText("");
         }
 
-        if (business.phone() != null) {
-            businessPhoneNumber.setText(business.phone().toString());
+        String phone = null;
+        try {
+            phone = business.getString("phone");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        if (phone != null) {
+            businessPhoneNumber.setText(phone);
         } else {
             businessPhoneNumber.setText("");
         }
-
-        if (business.location() != null) {
-            Location address = business.location();
-            ArrayList<String> addressList = address.displayAddress();
+        JSONObject location = null;
+        try {
+            location = business.getJSONObject("location");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        JSONArray displayAddress = null;
+        if(location != null){
+            try {
+                displayAddress = location.getJSONArray("displayAddress");
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < addressList.size(); i++) {
-                if (i == addressList.size() - 1) {
+            for (int i = 0; i < displayAddress.length(); i++) {
+                if (i == displayAddress.length() - 1) {
                     sb.append("\n");
-                    sb.append(addressList.get(i));
+                    try {
+                        sb.append(displayAddress.getString(i));
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                     break;
                 }
-                sb.append(addressList.get(i));
+                try {
+                    sb.append(displayAddress.getString(i));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
                 sb.append(" ");
             }
             businessAddress.setText(sb.toString());
-        } else {
+        }else {
             businessAddress.setText("");
         }
 
 
+//        if (business.location() != null) {
+//            Location address = business.location();
+//            ArrayList<String> addressList = address.displayAddress();
+//            StringBuilder sb = new StringBuilder();
+//            for (int i = 0; i < addressList.size(); i++) {
+//                if (i == addressList.size() - 1) {
+//                    sb.append("\n");
+//                    sb.append(addressList.get(i));
+//                    break;
+//                }
+//                sb.append(addressList.get(i));
+//                sb.append(" ");
+//            }
+//            businessAddress.setText(sb.toString());
+//        } else {
+//            businessAddress.setText("");
+//        }
+
+
         GoogleMapOptions options = new GoogleMapOptions();
-        LatLng latLng = new LatLng(business.location().coordinate().latitude(), business.location().coordinate().longitude());
+        JSONObject coordinate = null;
+        try {
+            coordinate = location.getJSONObject("coordinate");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        LatLng latLng = null;
+        if(coordinate != null) {
+
+            try {
+                latLng = new LatLng(coordinate.getDouble("latitude"), coordinate.getDouble("longitude"));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
 
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(latLng) // Center Set
@@ -179,16 +267,25 @@ public class FragmentSearchDetail extends Fragment {
                 .tiltGesturesEnabled(false).camera(cameraPosition).liteMode(true);
         if (fragment == null) {
             fragment = MapFragment.newInstance(options);
+            final JSONObject finalCoordinate = coordinate;
             fragment.getMapAsync(new OnMapReadyCallback() {
                 @Override
                 public void onMapReady(GoogleMap googleMap) {
-                    googleMap.addMarker(new MarkerOptions().position(new LatLng(business.location().coordinate().latitude(), business.location().coordinate().longitude()))
-                            .title("Marker")
-                            .snippet("Please move the marker if needed.")
-                            .draggable(true));
-                    LatLng latLng;
-                    if (business.location() != null) {
-                        latLng = new LatLng(business.location().coordinate().latitude(), business.location().coordinate().longitude());
+                    try {
+                        googleMap.addMarker(new MarkerOptions().position(new LatLng(finalCoordinate.getDouble("latitude"), finalCoordinate.getDouble("longitude")))
+                                .title("Marker")
+                                .snippet("Please move the marker if needed.")
+                                .draggable(true));
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    LatLng latLng = null;
+                    if (finalCoordinate != null) {
+                        try {
+                            latLng = new LatLng(finalCoordinate.getDouble("latitude"), finalCoordinate.getDouble("longitude"));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                     } else {
                         latLng = new LatLng(0, 0);
                     }
@@ -242,31 +339,19 @@ public class FragmentSearchDetail extends Fragment {
         } catch (CouchbaseLiteException e) {
             e.printStackTrace();
         }
-        String businessName;
-        String jsonString = new String();
         for (Iterator<QueryRow> it = result; it.hasNext(); ) {
             QueryRow row = it.next();
             Document doc = row.getDocument();
             JSONObject json = new JSONObject(doc.getProperties());
             try {
-                if(json.getString("id").toString().equals(business.id().toString())){
+                if(json.getString("id").toString().equals(business.getString("id"))){
                     isInDatabase = true;
                     break;
                 }
             } catch (JSONException e) {
                 Log.e(DATABASE_NAME, "Cannot write document to database", e);
-
             }
         }
-
-        Gson gson = new Gson();
-        String json = gson.toJson(business);
-
-        JsonElement jelement = new JsonParser().parse(json);
-        JsonObject jobject = jelement.getAsJsonObject();
-
-        String bname  = jobject.get("name").getAsString();
-        Toast.makeText(mActivity, "business name: " + bname, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -282,7 +367,6 @@ public class FragmentSearchDetail extends Fragment {
         } catch (InflateException e) {
 
         }
-//        ViewGroup view = (ViewGroup) inflater.inflate(R.layout.fragment_favorite, null);
         setHasOptionsMenu(true);
         return view;
     }
@@ -324,7 +408,8 @@ public class FragmentSearchDetail extends Fragment {
 
                     Map<String,Object> jsonmap = null;
                     try {
-                        jsonmap = new ObjectMapper().readValue(new Gson().toJson(business), HashMap.class);
+//                        jsonmap = new ObjectMapper().readValue(new Gson().toJson(business), HashMap.class);
+                        jsonmap = new ObjectMapper().readValue(businessJsonStr, HashMap.class);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -337,15 +422,13 @@ public class FragmentSearchDetail extends Fragment {
                     }
                     menu.getItem(0).setIcon(mActivity.getDrawable(R.drawable.ic_favorite_white_24dp));
                 }
-                Toast.makeText(mActivity, "favorite icon", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mActivity, "Place saved", Toast.LENGTH_SHORT).show();
                 return true;
             case android.R.id.home:
-//                getChildFragmentManager().popBackStackImmediate();
                 getFragmentManager().popBackStackImmediate();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
-
 }
